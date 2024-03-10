@@ -9,7 +9,8 @@ import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
 import tradingview_ta
-
+import datetime
+from datetime import date, timedelta
 
 # Function to scrape data
 @st.cache_data(ttl=600)  # Set the time-to-live (TTL) for 10 minutes
@@ -52,6 +53,7 @@ def to_markdown(text):
 
 # Streamlit App
 def main():
+    timezone =indian_timezone = 'Asia/Kolkata'
     # Initialize session state
     if 'button_clicked' not in st.session_state:
         st.session_state.button_clicked = False
@@ -134,95 +136,100 @@ def main():
         symbol = f'{user_input}.NS'
     # Input for Start Date
     with col3:
-        start_date = st.date_input("Select start date", help="Choose a start date")
+        today = date.today()
+        default_date_yesterday = today - timedelta(days=1)
+        start_date = st.date_input("Select start date", value=default_date_yesterday, help="Choose a start date")
     # Input for End Date
     with col4:
         end_date = st.date_input("Select end date", help="Choose an end date")
     # symbol = user_input
-    df = yf.download(symbol, start=start_date, end=end_date)
-    # Add 'Date' column next to the index
-    df['Date'] = df.index
-    # Reset the index
-    df = df.reset_index(drop=True)
-    # Add a new column 'Volume Change' with the change in volume
-    df['Volume Change'] = df['Volume'].diff()
-    # df
-    st.markdown("<h2 style='font-size:25px;'>Candlestick Chart</h2>", unsafe_allow_html=True)
-
-    def plot_candlestick_chart(df):
-        # Create a candlestick chart using Plotly
-        candlestick_fig = go.Figure(
-            data=[go.Candlestick(x=df['Date'], open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'])])
-        # Set chart layout for the candlestick chart
-        candlestick_fig.update_layout(title=f'Candlestick Chart of {symbol}', xaxis_title='Date',
-                                      yaxis_title='Stock Price')
-
-        return candlestick_fig
-
-    st.plotly_chart(plot_candlestick_chart(df))
-
-    def plot_line_chart(df, symbol):
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['Date'], y=df['Close'], mode='lines', name='Close Price'))
-        fig.update_layout(title=f'Line chart of Close Prices - {symbol}', xaxis_title='Date',
-                          yaxis_title='Stock Price')
-        return fig
-
-    def plot_volume_chart(df, symbol):
-        volume_fig = go.Figure()
+    # indian_timezone = 'Asia/Kolkata'
+    if user_input:
+            
+        df = yf.download(symbol, start=start_date, end=end_date, )
+        # Add 'Date' column next to the index
+        df['Date'] = df.index
+        # Reset the index
+        df = df.reset_index(drop=True)
+        # Add a new column 'Volume Change' with the change in volume
         df['Volume Change'] = df['Volume'].diff()
-        positive_trace = go.Bar(x=df['Date'][df['Volume Change'] > 0], y=df['Volume'][df['Volume Change'] > 0],
-                                name='Positive Volume Change', marker=dict(color='green'))
-        negative_trace = go.Bar(x=df['Date'][df['Volume Change'] <= 0], y=df['Volume'][df['Volume Change'] <= 0],
-                                name='Negative Volume Change', marker=dict(color='red'))
-        volume_fig.update_layout(title=f'Volume for {symbol}', xaxis=dict(title='Date'), yaxis=dict(title='Volume'),
-                                 legend=dict(title='Stock Volume'))
-        volume_fig.add_traces([positive_trace, negative_trace])
-        return volume_fig
-
-    def plot_combined_chart(df, symbol):
-        combined_fig = go.Figure()
-        line_trace = go.Scatter(x=df['Date'], y=df['Close'], mode='lines', name='Close Price', yaxis='y2')
-        positive_trace = go.Bar(x=df['Date'][df['Volume Change'] > 0], y=df['Volume Change'][df['Volume Change'] > 0],
-                                name='Positive Volume Change ', marker=dict(color='green'))
-        negative_trace = go.Bar(x=df['Date'][df['Volume Change'] <= 0], y=df['Volume Change'][df['Volume Change'] <= 0],
-                                name='Negative Volume Change ', marker=dict(color='red'))
-        combined_fig.update_layout(title=f'Volume Change Vs Close Price - {symbol}', xaxis=dict(title='Date'),
-                                   yaxis=dict(title='Volume Change'), yaxis2=dict(title='Close Price', overlaying='y',
-                                                                               side='right'),
-                                   legend=dict(title='Volume Change'))
-        combined_fig.add_traces([positive_trace, negative_trace, line_trace])
-        return combined_fig
-
-    def plot_returns_chart(df, symbol):
-        df['Daily Returns'] = df['Close'] - df['Open'].shift(1)
-
-        df.dropna(inplace=True)
-        returns_fig = go.Figure()
-
-        returns_trace = go.Bar(x=df['Date'], y=df['Daily Returns'],
-                               marker_color=df['Daily Returns'].apply(lambda x: 'green' if x > 0 else 'red'),
-                               name='Daily Returns in Rupees')
-
-        returns_fig.update_layout(title=f'Daily Returns in Rupees for {symbol}', xaxis=dict(title='Date'),
-                                  yaxis=dict(title='Daily Returns (Rupees)'), legend=dict(title=''))
-
-        returns_fig.add_trace(returns_trace)
-        return returns_fig
-
-    st.markdown("<h2 style='font-size:25px;'>Other Charts</h2>", unsafe_allow_html=True)
+        # df
+        st.markdown("<h2 style='font-size:25px;'>Candlestick Chart</h2>", unsafe_allow_html=True)
     
-    chart_selection = st.selectbox("Select Chart Type:",
-                                   ["Line", "Volume", "Close vs Volume Change", "Daily Returns"])
+        def plot_candlestick_chart(df):
+            # Create a candlestick chart using Plotly
+            candlestick_fig = go.Figure(
+                data=[go.Candlestick(x=df['Date'], open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'])])
+            # Set chart layout for the candlestick chart
+            candlestick_fig.update_layout(title=f'Candlestick Chart of {symbol}', xaxis_title='Date',
+                                          yaxis_title='Stock Price')
     
-    if chart_selection == "Line":
-        st.plotly_chart(plot_line_chart(df, symbol))
-    elif chart_selection == "Volume":
-        st.plotly_chart(plot_volume_chart(df, symbol))
-    elif chart_selection == "Close vs Volume Change":
-        st.plotly_chart(plot_combined_chart(df, symbol))
-    elif chart_selection == "Daily Returns":
-        st.plotly_chart(plot_returns_chart(df, symbol))
+            return candlestick_fig
+    
+        st.plotly_chart(plot_candlestick_chart(df))
+    
+        def plot_line_chart(df, symbol):
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df['Date'], y=df['Close'], mode='lines', name='Close Price'))
+            fig.update_layout(title=f'Line chart of Close Prices - {symbol}', xaxis_title='Date',
+                              yaxis_title='Stock Price')
+            return fig
+    
+        def plot_volume_chart(df, symbol):
+            volume_fig = go.Figure()
+            df['Volume Change'] = df['Volume'].diff()
+            positive_trace = go.Bar(x=df['Date'][df['Volume Change'] > 0], y=df['Volume'][df['Volume Change'] > 0],
+                                    name='Positive Volume Change', marker=dict(color='green'))
+            negative_trace = go.Bar(x=df['Date'][df['Volume Change'] <= 0], y=df['Volume'][df['Volume Change'] <= 0],
+                                    name='Negative Volume Change', marker=dict(color='red'))
+            volume_fig.update_layout(title=f'Volume for {symbol}', xaxis=dict(title='Date'), yaxis=dict(title='Volume'),
+                                     legend=dict(title='Stock Volume'))
+            volume_fig.add_traces([positive_trace, negative_trace])
+            return volume_fig
+    
+        def plot_combined_chart(df, symbol):
+            combined_fig = go.Figure()
+            line_trace = go.Scatter(x=df['Date'], y=df['Close'], mode='lines', name='Close Price', yaxis='y2')
+            positive_trace = go.Bar(x=df['Date'][df['Volume Change'] > 0], y=df['Volume Change'][df['Volume Change'] > 0],
+                                    name='Positive Volume Change ', marker=dict(color='green'))
+            negative_trace = go.Bar(x=df['Date'][df['Volume Change'] <= 0], y=df['Volume Change'][df['Volume Change'] <= 0],
+                                    name='Negative Volume Change ', marker=dict(color='red'))
+            combined_fig.update_layout(title=f'Volume Change Vs Close Price - {symbol}', xaxis=dict(title='Date'),
+                                       yaxis=dict(title='Volume Change'), yaxis2=dict(title='Close Price', overlaying='y',
+                                                                                   side='right'),
+                                       legend=dict(title='Volume Change'))
+            combined_fig.add_traces([positive_trace, negative_trace, line_trace])
+            return combined_fig
+    
+        def plot_returns_chart(df, symbol):
+            df['Daily Returns'] = df['Close'] - df['Open'].shift(1)
+    
+            df.dropna(inplace=True)
+            returns_fig = go.Figure()
+    
+            returns_trace = go.Bar(x=df['Date'], y=df['Daily Returns'],
+                                   marker_color=df['Daily Returns'].apply(lambda x: 'green' if x > 0 else 'red'),
+                                   name='Daily Returns in Rupees')
+    
+            returns_fig.update_layout(title=f'Daily Returns in Rupees for {symbol}', xaxis=dict(title='Date'),
+                                      yaxis=dict(title='Daily Returns (Rupees)'), legend=dict(title=''))
+    
+            returns_fig.add_trace(returns_trace)
+            return returns_fig
+    
+        st.markdown("<h2 style='font-size:25px;'>Other Charts</h2>", unsafe_allow_html=True)
+        
+        chart_selection = st.selectbox("Select Chart Type:",
+                                       ["Line", "Volume", "Close vs Volume Change", "Daily Returns"])
+        
+        if chart_selection == "Line":
+            st.plotly_chart(plot_line_chart(df, symbol))
+        elif chart_selection == "Volume":
+            st.plotly_chart(plot_volume_chart(df, symbol))
+        elif chart_selection == "Close vs Volume Change":
+            st.plotly_chart(plot_combined_chart(df, symbol))
+        elif chart_selection == "Daily Returns":
+            st.plotly_chart(plot_returns_chart(df, symbol))
     
     st.markdown("<h1 style='font-size:32px;text-align:center;'>Technical Indicators</h1>", unsafe_allow_html=True)
 
