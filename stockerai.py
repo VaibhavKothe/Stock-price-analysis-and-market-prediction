@@ -405,12 +405,12 @@ def main():
         
         st.markdown("<p style='font-size:20px; text-align:center;'>"
             "Hi, I'm <strong>Vaibhav Kothe</strong> from Government College of Engineering Nagpur. "
-            "I built this project for all stock market enthusiasts to make their decision-making easy for investing in the stock market.</p>"
+            "I built this project for all the stock market enthusiasts to make their decision-making easy for investing in stock market.</p>"
             "<p style='font-size:20px; text-align:center;'>Connect with me on:</p>"
             , unsafe_allow_html=True)
 
         
-        st.write("Email: vaibhavdkothe@example.com")
+        st.write("Email: vaibhavdkothe@gmail.com")
         st.write("LinkedIn: https://www.linkedin.com/in/vaibhavkothe451")
         st.write("Outlook: vaibhavdkothe@outlook.com")
         st.write("Github: https://github.com/VaibhavKothe")
