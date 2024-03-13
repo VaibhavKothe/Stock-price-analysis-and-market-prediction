@@ -64,4 +64,4 @@ jobs:
         with:
           app-name: 'stockerai'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_2B038585D460467E871D70FA9F74F245 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_59F02E95639C4F98897DCAA814DED269 }}
