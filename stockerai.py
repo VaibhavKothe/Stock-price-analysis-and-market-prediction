@@ -14,6 +14,7 @@ from datetime import date, timedelta
 import pandas as pd
 from prophet import Prophet
 from PIL import Image
+import streamlit_option_menu
 from streamlit_option_menu import option_menu
 
 # Function to scrape data
@@ -65,7 +66,7 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        selected = option_menu("Main Menu", ["Home", 'Contact'], 
+        selected = option_menu("Menu", ["Home", 'Contact'], 
             icons=['house', 'phone'], menu_icon="cast", default_index=0)
         # selected
     if selected == "Home":    
@@ -376,7 +377,7 @@ def main():
         with col4:
             # end_date = st.date_input("Select end date", value=date.today(),help="Choose an end date", key="end_date_col4")
             # st.write(f"Selected End Date: {end_date}")
-            st.number_input(label='Future Preditons for (Days)', min_value=1, max_value=None,step=4 )
+            io = st.number_input(label='Future Preditons for (Days)', min_value=1, max_value=None,step=4 )
 
 
 
@@ -393,7 +394,7 @@ def main():
 
             m = Prophet()
             m.fit(train)
-            future = m.make_future_dataframe(periods=30)
+            future = m.make_future_dataframe(periods=io)
             forecast = m.predict(future)
 
             # Plot the forecast using Plotly
@@ -405,7 +406,7 @@ def main():
         
         st.markdown("<p style='font-size:20px; text-align:center;'>"
             "Hi, I'm <strong>Vaibhav Kothe</strong> from Government College of Engineering Nagpur. "
-            "I built this project for all the stock market enthusiasts to make their decision-making easy for investing in stock market.</p>"
+            "I built this project for all stock market enthusiasts to make their decision-making easy for investing in stock market.</p>"
             "<p style='font-size:20px; text-align:center;'>Connect with me on:</p>"
             , unsafe_allow_html=True)
 
