@@ -14,8 +14,14 @@ from datetime import date, timedelta
 import pandas as pd
 from prophet import Prophet
 from PIL import Image
-import streamlit_option_menu
 from streamlit_option_menu import option_menu
+
+st.set_page_config(
+    page_title="Stocker AI",
+    page_icon=":chart_with_upwards_trend:",
+    layout="wide",  # Adjust layout for responsiveness
+    initial_sidebar_state="collapsed",  # Collapse the sidebar initially on small screens
+)
 
 # Function to scrape data
 @st.cache_data(ttl=600)  # Set the time-to-live (TTL) for 10 minutes
@@ -107,13 +113,13 @@ def main():
                     st.write("")
 
         st.title("News Analysis Chatbot")
-        st.markdown("<h2 style='font-size:25px;'>Ask Anything...</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='font-size:25px;'>Ask Anything... Chatbot will answer based on News scraped earlier</h2>", unsafe_allow_html=True)
         prompt = st.text_input('Example:  stocks with highly positive sentiment/ stocks recommended to buy',
                                placeholder='Write Your Prompt Here...', label_visibility='visible')
 
         model = genai.GenerativeModel('gemini-pro')
 
-        if st.button(':black[Apply]', use_container_width=True):
+        if st.button(':black[Generate Response]', use_container_width=True):
             news_data1 = scrape_moneycontrol_news(pages)
             news_data_dict1 = [{'title': item['title'], 'summary': item['summary']} for item in news_data1]
             all_news_data = {}
@@ -139,6 +145,10 @@ def main():
         else:
             st.markdown('Please Click on (Apply) Button')
 
+
+
+
+
         # Text input widget for user input
         st.title("Stock Charts")
         col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
@@ -157,7 +167,7 @@ def main():
         # Input for Start Date
         with col3:
             today = date.today()
-            default_date_yesterday = today - timedelta(days=60)
+            default_date_yesterday = today - timedelta(days=365)
             start_date = st.date_input("Select start date", value=default_date_yesterday, help="Choose a start date")
         # Input for End Date
         with col4:
@@ -186,18 +196,25 @@ def main():
                     data=[go.Candlestick(x=df['Date'], open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'])])
                 # Set chart layout for the candlestick chart
                 candlestick_fig.update_layout(title=f'Candlestick Chart of {symbol}', xaxis_title='Date',
-                                              yaxis_title='Stock Price')
+                                              yaxis_title='Stock Price', dragmode='pan')
 
                 return candlestick_fig
 
-            st.plotly_chart(plot_candlestick_chart(df))
+            st.plotly_chart(plot_candlestick_chart(df) )
+
+
+
+            
 
             def plot_line_chart(df, symbol):
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=df['Date'], y=df['Close'], mode='lines', name='Close Price'))
                 fig.update_layout(title=f'Line chart of Close Prices - {symbol}', xaxis_rangeslider_visible=True ,xaxis_title='Date',
-                                  yaxis_title='Stock Price')
+                                  yaxis_title='Stock Price', dragmode='pan')
                 return fig
+
+
+                
 
             def plot_volume_chart(df, symbol):
                 volume_fig = go.Figure()
@@ -207,9 +224,12 @@ def main():
                 negative_trace = go.Bar(x=df['Date'][df['Volume Change'] <= 0], y=df['Volume'][df['Volume Change'] <= 0],
                                         name='Negative Volume Change', marker=dict(color='red'))
                 volume_fig.update_layout(title=f'Volume for {symbol}', xaxis_rangeslider_visible=True,xaxis=dict(title='Date'), yaxis=dict(title='Volume'),
-                                         legend=dict(title='Stock Volume'))
+                                         legend=dict(title='Stock Volume'), dragmode='pan')
                 volume_fig.add_traces([positive_trace, negative_trace])
                 return volume_fig
+
+
+
 
             def plot_combined_chart(df, symbol):
                 combined_fig = go.Figure()
@@ -221,9 +241,11 @@ def main():
                 combined_fig.update_layout(title=f'Volume Change Vs Close Price - {symbol}', xaxis_rangeslider_visible=True,xaxis=dict(title='Date'),
                                            yaxis=dict(title='Volume Change'), yaxis2=dict(title='Close Price', overlaying='y',
                                                                                        side='right'),
-                                           legend=dict(title='Volume Change'))
+                                           legend=dict(title='Volume Change'), dragmode='pan')
                 combined_fig.add_traces([positive_trace, negative_trace, line_trace])
                 return combined_fig
+
+
 
             def plot_returns_chart(df, symbol):
                 df['Daily Returns'] = df['Close'] - df['Open'].shift(1)
@@ -236,10 +258,11 @@ def main():
                                        name='Daily Returns in Rupees')
 
                 returns_fig.update_layout(title=f'Daily Returns in Rupees for {symbol}', xaxis_rangeslider_visible=True,xaxis=dict(title='Date'),
-                                          yaxis=dict(title='Daily Returns (Rupees)'), legend=dict(title=''))
+                                          yaxis=dict(title='Daily Returns (Rupees)'), legend=dict(title=''),dragmode='pan')
 
                 returns_fig.add_trace(returns_trace)
                 return returns_fig
+
 
             st.markdown("<h2 style='font-size:25px;'>Other Charts</h2>", unsafe_allow_html=True)
 
@@ -255,35 +278,35 @@ def main():
             elif chart_selection == "Daily Returns":
                 st.plotly_chart(plot_returns_chart(df, symbol))
 
-        st.title("Chat With Graph")
-        st.markdown("<h2 style='font-size:25px;'>Download the above graph (from Camera Icon) and Upload Here...</h2>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Upload Here", type=["jpg", "jpeg", "png"])
+        # st.title("Chat With Graph")
+        # st.markdown("<h2 style='font-size:25px;'>Download the above graph (from Camera Icon) and Upload Here...</h2>", unsafe_allow_html=True)
+        # uploaded_file = st.file_uploader("Upload Here", type=["jpg", "jpeg", "png"])
 
-        if uploaded_file is not None:
-            # Open the uploaded image
-            image = Image.open(uploaded_file)
+        # if uploaded_file is not None:
+        #     # Open the uploaded image
+        #     image = Image.open(uploaded_file)
 
-            # Resize the image to (2,2)
-            # resized_image = image.resize((1,1))
+        #     # Resize the image to (2,2)
+        #     # resized_image = image.resize((1,1))
 
-            # Display the resized image
-            img = st.image(image, caption="Uploaded Image", use_column_width=True)
+        #     # Display the resized image
+        #     img = st.image(image, caption="Uploaded Image", use_column_width=True)
 
-            model = genai.GenerativeModel('gemini-pro-vision')
+        #     model = genai.GenerativeModel('gemini-pro-vision')
 
-            # Using a text input box
-        st.markdown("<h2 style='font-size:25px;'>Ask Anything about the uploaded Graph...</h2>", unsafe_allow_html=True)
-        pmt = st.text_input('Example: What is the trend of this chart',
-                                placeholder='Write Your Prompt Here...', key='prompt_input')
+        #     # Using a text input box
+        # st.markdown("<h2 style='font-size:25px;'>Ask Anything about the uploaded Graph...</h2>", unsafe_allow_html=True)
+        # pmt = st.text_input('Example: What is the trend of this chart',
+        #                         placeholder='Write Your Prompt Here...', key='prompt_input')
 
-            # Check if the input is not empty before generating content
-        if st.button('Generate Response'):
-            response = model.generate_content([f'{pmt} ', image], stream=True)
-            response.resolve()
+        #     # Check if the input is not empty before generating content
+        # if st.button('Generate Response'):
+        #     response = model.generate_content([f'{pmt} ', image], stream=True)
+        #     response.resolve()
 
-                # Display the response as Markdown
-            st.header(":black[Response]")
-            st.markdown(response.text)
+        #         # Display the response as Markdown
+        #     st.header(":black[Response]")
+        #     st.markdown(response.text)
 
 
         st.title("Indicators Recommendations")
@@ -361,7 +384,7 @@ def main():
             # # st.write(symbol_user)
             # symbol = f'{user_input_col1}.NS'
             today = date.today()
-            default_date_yesterday = today - timedelta(days=300)
+            default_date_yesterday = today - timedelta(days=800)
             start_date = st.date_input("Select start date", value=default_date_yesterday, help="Choose a start date", key="start_date_col3")
 
 
@@ -377,8 +400,9 @@ def main():
         with col4:
             # end_date = st.date_input("Select end date", value=date.today(),help="Choose an end date", key="end_date_col4")
             # st.write(f"Selected End Date: {end_date}")
-            io = st.number_input(label='Future Preditons for (Days)', min_value=1, max_value=None,step=4 )
+            io = st.number_input(label='Future Preditons for (Days)', min_value=1, max_value=None,step=5, value=30 )
 
+        st.markdown("<h2 style='font-size:25px;'>Choose the start date of before 2022 for more accurate predictions</h2>", unsafe_allow_html=True)
 
 
         if st.button("Forecast"):
@@ -400,7 +424,33 @@ def main():
             # Plot the forecast using Plotly
             st.subheader("Future Predictions:")
             fig = plot_plotly(m, forecast)
+            # st.plotly_chart(fig)
+            fig.update_layout(
+                autosize=True,
+                margin=dict(l=40, r=40, t=40, b=40),
+                hovermode='closest',
+                showlegend=True,
+                dragmode='pan'
+            )
+
+            # Add panning functionality
+            fig.update_xaxes(
+                rangeslider_visible=True,
+                rangeselector=dict(
+                    buttons=list([
+                        dict(count=7, label="1w", step="day", stepmode="backward"),
+                        dict(count=1, label="1m", step="month", stepmode="backward"),
+                        dict(count=3, label="3m", step="month", stepmode="backward"),
+                        dict(count=6, label="6m", step="month", stepmode="backward"),
+                        dict(step="all")
+                    ])
+                )
+            )
+
+            # Display the Plotly chart
             st.plotly_chart(fig)
+
+
     elif selected =='Contact':
         st.header("Contact")
         
@@ -411,10 +461,13 @@ def main():
             , unsafe_allow_html=True)
 
         
-        st.write("Email: vaibhavdkothe@gmail.com")
+        st.write("Gmail: vaibhavdkothe@gmail.com")
         st.write("LinkedIn: https://www.linkedin.com/in/vaibhavkothe451")
         st.write("Outlook: vaibhavdkothe@outlook.com")
         st.write("Github: https://github.com/VaibhavKothe")
+        # st.write("Phone:  9860572869")
+
+
 
         
 
