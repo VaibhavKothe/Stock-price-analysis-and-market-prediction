@@ -16,6 +16,10 @@ from prophet import Prophet
 from PIL import Image
 from streamlit_option_menu import option_menu
 
+import plotly.io as pio
+from io import BytesIO
+import kaleido
+
 st.set_page_config(
     page_title="Stocker AI",
     page_icon=":chart_with_upwards_trend:",
@@ -143,10 +147,7 @@ def main():
             st.write('')
             st.markdown(response.text)
         else:
-            st.markdown('Please Click on (Apply) Button')
-
-
-
+            st.markdown('Please Click on (Generate Response) Button')
 
 
         # Text input widget for user input
@@ -177,6 +178,7 @@ def main():
 
 
 
+
         if user_input:
 
             df = yf.download(symbol, start=start_date, end=end_date, )
@@ -188,6 +190,7 @@ def main():
             df['Volume Change'] = df['Volume'].diff()
             # df
             st.markdown("<h2 style='font-size:25px;'>Candlestick Chart</h2>", unsafe_allow_html=True)
+
 
 
             def plot_candlestick_chart(df):
@@ -204,7 +207,6 @@ def main():
 
 
 
-            
 
             def plot_line_chart(df, symbol):
                 fig = go.Figure()
@@ -214,7 +216,7 @@ def main():
                 return fig
 
 
-                
+
 
             def plot_volume_chart(df, symbol):
                 volume_fig = go.Figure()
@@ -269,6 +271,7 @@ def main():
             chart_selection = st.selectbox("Select Chart Type:",
                                            ["Line", "Volume", "Close vs Volume Change", "Daily Returns",])
 
+
             if chart_selection == "Line":
                 st.plotly_chart(plot_line_chart(df, symbol))
             elif chart_selection == "Volume":
@@ -278,7 +281,9 @@ def main():
             elif chart_selection == "Daily Returns":
                 st.plotly_chart(plot_returns_chart(df, symbol))
 
-        # st.title("Chat With Graph")
+
+
+        st.title("Chat With Graph")
         # st.markdown("<h2 style='font-size:25px;'>Download the above graph (from Camera Icon) and Upload Here...</h2>", unsafe_allow_html=True)
         # uploaded_file = st.file_uploader("Upload Here", type=["jpg", "jpeg", "png"])
 
@@ -296,20 +301,78 @@ def main():
 
         #     # Using a text input box
         # st.markdown("<h2 style='font-size:25px;'>Ask Anything about the uploaded Graph...</h2>", unsafe_allow_html=True)
-        # pmt = st.text_input('Example: What is the trend of this chart',
-        #                         placeholder='Write Your Prompt Here...', key='prompt_input')
+        pmt = st.text_input('Example: What is the trend of this chart',
+                                placeholder='Write Your Prompt Here...', key='prompt_input')
 
-        #     # Check if the input is not empty before generating content
-        # if st.button('Generate Response'):
-        #     response = model.generate_content([f'{pmt} ', image], stream=True)
-        #     response.resolve()
+        model = genai.GenerativeModel('gemini-pro-vision')
 
-        #         # Display the response as Markdown
-        #     st.header(":black[Response]")
-        #     st.markdown(response.text)
+        df = yf.download(symbol, start=start_date, end=end_date, )
+        df['Date'] = df.index
+        df['Volume Change'] = df['Volume'].diff()
+        # def plot_candlestick_chart(df):
+                # Create a candlestick chart using Plotly
+        candlestick_fig = go.Figure(
+            data=[go.Candlestick(x=df['Date'], open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'])])
+        # Set chart layout for the candlestick chart
+        candlestick_fig.update_layout(title=f'Candlestick Chart of {symbol}', xaxis_title='Date',
+                                      yaxis_title='Stock Price', dragmode='pan')
+
+        # volume_fig = go.Figure()
+        # df['Volume Change'] = df['Volume'].diff()
+        # positive_trace = go.Bar(x=df['Date'][df['Volume Change'] > 0], y=df['Volume'][df['Volume Change'] > 0],
+        #                         name='Positive Volume Change', marker=dict(color='green'))
+        # negative_trace = go.Bar(x=df['Date'][df['Volume Change'] <= 0], y=df['Volume'][df['Volume Change'] <= 0],
+        #                         name='Negative Volume Change', marker=dict(color='red'))
+        # volume_fig.update_layout(title=f'Volume for {symbol}', xaxis_rangeslider_visible=True,xaxis=dict(title='Date'), yaxis=dict(title='Volume'),
+        #                          legend=dict(title='Stock Volume'), dragmode='pan')
+        # volume_fig.add_traces([positive_trace, negative_trace])
 
 
-        st.title("Indicators Recommendations")
+        # df['Daily Returns'] = df['Close'] - df['Open'].shift(1)
+
+        # df.dropna(inplace=True)
+        # returns_fig = go.Figure()
+        # returns_trace = go.Bar(x=df['Date'], y=df['Daily Returns'],
+        # marker_color=df['Daily Returns'].apply(lambda x: 'green' if x > 0 else 'red'),
+        # name='Daily Returns in Rupees')
+
+        # returns_fig.update_layout(title=f'Daily Returns in Rupees for {symbol}', xaxis_rangeslider_visible=True,xaxis=dict(title='Date'),
+        # yaxis=dict(title='Daily Returns (Rupees)'), legend=dict(title=''),dragmode='pan')
+
+        # returns_fig.add_trace(returns_trace)
+
+
+        img_bytes = pio.to_image(candlestick_fig, format='png')
+        image = Image.open(BytesIO(img_bytes))
+
+        # img_bytes2 = pio.to_image(volume_fig, format='png')
+        # image2 = Image.open(BytesIO(img_bytes2))
+
+        # img_bytes3 = pio.to_image(returns_fig, format='png')
+        # image3 = Image.open(BytesIO(img_bytes3))
+
+            # Check if the input is not empty before generating content
+        if st.button('Generate Response'):
+            response = model.generate_content([f'{pmt} ',image ], stream=True)
+            response.resolve()
+
+            # response2 = model.generate_content([f'{pmt} ',image2 ], stream=True)
+            # response2.resolve()
+
+            # response3 = model.generate_content([f'{pmt} ',image3 ], stream=True)
+            # response3.resolve()
+
+                # Display the response as Markdown
+            st.header(":black[Response]")
+            st.markdown(response.text)
+            # st.header(":black[Response]")
+            # st.markdown(response2.text)
+            # st.header(":black[Response]")
+            # st.markdown(response3.text)
+            
+
+
+        st.title("Indicators Recommendations (For Short Term)")
 
         def get_recommendations(symbol):
             from tradingview_ta import TA_Handler, Interval, Exchange
