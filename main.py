@@ -19,6 +19,8 @@ from streamlit_option_menu import option_menu
 import plotly.io as pio
 from io import BytesIO
 import kaleido
+from textblob import TextBlob
+import plotly.express as px
 
 st.set_page_config(
     page_title="Stocker AI",
@@ -57,7 +59,7 @@ def scrape_moneycontrol_news(pages):
 
 
 # Set your Google API key here
-GOOGLE_API_KEY = 'AIzaSyAcVsSxF30Uh7VFP3p4wexJimVR8x9O_qY'
+GOOGLE_API_KEY = 'AIzaSyCvRUYhCJV3kigemQ1kdHAHGXQ_0TDgmfY'
 genai.configure(api_key=GOOGLE_API_KEY)
 
 
@@ -90,30 +92,68 @@ def main():
         news_data_dict = []  # Store news data in dictionary form
 
         # Apply HTML styling to reduce font size
-        st.title("Moneycontrol News Scrapper")
-        st.markdown("<p style='font-size:20px; font-weight:bold;'>Select the number of pages to scrape:</p>", unsafe_allow_html=True)
+        st.title("Get the Latest News from Market")
+        st.subheader("Select Number of Pages to Scrape")
         pages = st.slider("", 1, 20, 1)
         # pages = st.slider("", 1, 20, 1)
+        def analyze_sentiment(text):
+            analysis = TextBlob(text)
+            # Assign sentiment polarity labels: 'positive', 'negative', or 'neutral'
+            if analysis.sentiment.polarity > 0:
+                return 'Positive'
+            elif analysis.sentiment.polarity < 0:
+                return 'Negative'
+            else:
+                return 'Neutral'
+
 
         if st.button("Scrape News"):
+            
+            # Assume you have already scraped the news data and stored it in 'news_data_dict'
             news_data = scrape_moneycontrol_news(pages)
-            news_data_dict = [{'title': item['title'], 'summary': item['summary']} for item in news_data]
-            st.markdown(f"<h2 style='font-size:20px;'>{pages} Pages Successfully Scraped</h2>", unsafe_allow_html=True)
+            news_data_dict = [{'Headlines': item['title'], 'Summary': item['summary']} for item in news_data]
+        
+            # Create a DataFrame from the scraped news data
+            df = pd.DataFrame(news_data_dict)
+        
+            # Perform sentiment analysis and add the results as a new column
+            df['Sentiment of Summary'] = df['Summary'].apply(analyze_sentiment)
+            df['Sentiment of Headlines'] = df['Headlines'].apply(analyze_sentiment)        
+            # Save the DataFrame as a CSV file
+            df.to_csv("news_data.csv", index=False)
+        
+            # Display the DataFrame containing the scraped news data with sentiment analysis results
+            st.subheader("Scraped News Data with Sentiment Analysis")
+            st.dataframe(df)
+            col1, col2= st.columns([1, 1])
+            with col1:
+                sentiment_counts_headlines = df['Sentiment of Headlines'].value_counts()
+                fig_headlines = px.pie(sentiment_counts_headlines, values=sentiment_counts_headlines.values, 
+                                        names=sentiment_counts_headlines.index, title='Sentiment Distribution of Headlines')
+                st.plotly_chart(fig_headlines)
 
+            # Plot the second pie chart in col2
+            with col2:
+                sentiment_counts_summary = df['Sentiment of Summary'].value_counts()
+                fig_summary = px.pie(sentiment_counts_summary, values=sentiment_counts_summary.values, 
+                                     names=sentiment_counts_summary.index, title='Sentiment Distribution of Summary')
+                st.plotly_chart(fig_summary)
+        
             # Display the URLs of scraped pages as clickable links
-            for i in range(1, pages + 1):
-                scraped_url = f'https://www.moneycontrol.com/news/business/stocks/page-{i}'
-                st.markdown(f"- [Page {i}]({scraped_url})", unsafe_allow_html=True)
+            # st.subheader("Scraped Pages Links")
+            # for i in range(1, pages + 1):
+            #     scraped_url = f'https://www.moneycontrol.com/news/business/stocks/page-{i}'
+            #     st.markdown(f"- [Page {i}]({scraped_url})", unsafe_allow_html=True)
 
             # Display news headlines and subtext
-            st.markdown("<h2 style='font-size:20px;'>Scraped News</h2>", unsafe_allow_html=True)
+            st.subheader("Scraped News")
             # toggle_button_clicked = st.button("Toggle News")
 
             with st.expander("News"):
                 for idx, news_item in enumerate(news_data_dict, start=1):
-                    st.write(f"<span style='font-size: 14px; margin-bottom: 5px;'>{idx}. <strong>{news_item['title']}</strong></span>",
+                    st.write(f"<span style='font-size: 14px; margin-bottom: 5px;'>{idx}. <strong>{news_item['Headlines']}</strong></span>",
                              unsafe_allow_html=True)
-                    st.write(f"<span style='font-size: 12px;'>   *{news_item['summary']}*</span>", unsafe_allow_html=True)
+                    st.write(f"<span style='font-size: 12px;'>   *{news_item['Summary']}*</span>", unsafe_allow_html=True)
                     st.write("")
 
         st.title("News Analysis Chatbot")
@@ -283,7 +323,7 @@ def main():
 
 
 
-        st.title("Chat With Graph")
+        st.title("Chat With above Graph")
         # st.markdown("<h2 style='font-size:25px;'>Download the above graph (from Camera Icon) and Upload Here...</h2>", unsafe_allow_html=True)
         # uploaded_file = st.file_uploader("Upload Here", type=["jpg", "jpeg", "png"])
 
@@ -301,7 +341,7 @@ def main():
 
         #     # Using a text input box
         # st.markdown("<h2 style='font-size:25px;'>Ask Anything about the uploaded Graph...</h2>", unsafe_allow_html=True)
-        pmt = st.text_input('Example: What is the trend of this chart',
+        pmt = st.text_input('Example: Perform Technical Analysis on above Chart and give me some suggestions to buy it or not',
                                 placeholder='Write Your Prompt Here...', key='prompt_input')
 
         model = genai.GenerativeModel('gemini-pro-vision')
